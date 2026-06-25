@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Constancias de Inscripción - UTEA</title>
+    <!-- Tailwind CSS para diseño fluido -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2pdf.js para exportación limpia a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- FontAwesome para iconos de alta calidad -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap');
+        
+        .font-titulo {
+            font-family: 'Cinzel', serif;
+        }
+        .font-cuerpo {
+            font-family: 'Montserrat', sans-serif;
+        }
+        .font-certificado-titulo {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Contenedor del Certificado: Dimensiones exactas A4 en proporción 1050x742 */
+        #certificado-a4 {
+            width: 1050px;
+            height: 742px;
+            background-color: #ffffff;
+            position: relative;
+            box-sizing: border-box;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            background-image: 
+                radial-gradient(rgba(30, 58, 138, 0.02) 2.5px, transparent 2.5px),
+                radial-gradient(rgba(30, 58, 138, 0.02) 2.5px, transparent 2.5px);
+            background-size: 26px 26px;
+            background-position: 0 0, 13px 13px;
+        }
+
+        /* Doble marco de diploma de alta gama */
+        .certificado-marco {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            right: 25px;
+            bottom: 25px;
+            border: 3.5px solid #1e3a8a;
+            pointer-events: none;
+        }
+
+        .certificado-marco-interno {
+            position: absolute;
+            top: 35px;
+            left: 35px;
+            right: 35px;
+            bottom: 35px;
+            border: 1.5px solid #d97706;
+            pointer-events: none;
+        }
+
+        /* Ornamentos de esquina */
+        .esquina {
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            border-color: #d97706;
+            border-style: solid;
+            pointer-events: none;
+        }
+        .esquina-tl { top: 40px; left: 40px; border-width: 2.5px 0 0 2.5px; }
+        .esquina-tr { top: 40px; right: 40px; border-width: 2.5px 2.5px 0 0; }
+        .esquina-bl { bottom: 40px; left: 40px; border-width: 0 0 2.5px 2.5px; }
+        .esquina-br { bottom: 40px; right: 40px; border-width: 0 2.5px 2.5px 0; }
+
+        /* Contenedor del autoscale para centrado de renderizado */
+        #certificado-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow: visible;
+        }
+
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #d97706;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-cuerpo min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950">
+
+    <!-- CABECERA INSTITUCIONAL -->
+    <header class="bg-slate-900 border-b border-slate-800 py-3.5 px-6 sticky top-0 z-40 shadow-xl">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <!-- Título y Logotipo -->
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-blue-700 to-blue-500 p-2.5 rounded-xl text-white shadow-md">
+                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-extrabold tracking-wider text-white font-titulo leading-none">UTEA</h1>
+                    <p class="text-[9px] text-amber-500 font-bold tracking-widest uppercase mt-1">Concurso de Posters Académicos - Ingeniería Civil</p>
+                </div>
+            </div>
+
+            <!-- Indicador de estado y carga de base de datos -->
+            <div class="flex items-center gap-3">
+                <span id="badge-contador" class="bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 text-xs font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="contador-texto">Cargando padrón oficial...</span>
+                </span>
+                
+                <!-- Selector de Rol (Pestañas) -->
+                <div class="bg-slate-950 p-1 rounded-xl border border-slate-800 flex">
+                    <button id="tab-participante" onclick="seleccionarRol('participante')" 
+                            class="px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 bg-blue-600 text-white shadow">
+                        <i class="fa-solid fa-user"></i> Estudiante
+                    </button>
+                   <!-- <button id="tab-admin" onclick="seleccionarRol('admin')" -->
+                     <!--       class="px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 text-slate-400 hover:text-slate-200"> -->
+                    <!--    <i class="fa-solid fa-user-gear"></i> Admin (CSV) -->
+                   <!-- </button> -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ÁREA DE TRABAJO EN DOS COLUMNAS -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- ================= PANEL DE CONTROL IZQUIERDO (4 Columnas) ================= -->
+        <section class="lg:col-span-4 flex flex-col gap-5">
+            
+            <!-- VISTA DE ALUMNO (BÚSQUEDA) -->
+            <div id="panel-participante" class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl transition-all">
+                <h2 class="text-xs font-extrabold text-amber-500 uppercase tracking-widest mb-2.5 flex items-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass"></i> Consulta de Inscripción
+                </h2>
+                <p class="text-slate-400 text-xs mb-4 leading-relaxed">
+                    Escribe tu **Número de DNI** o tus **Apellidos** para generar de forma inmediata la vista previa de tu constancia de inscripción oficial.
+                </p>
+                
+                <div class="space-y-3">
+                    <div class="relative">
+                        <input type="text" id="dni-busqueda" placeholder="Escribe DNI o Nombre aquí..." 
+                               class="w-full pl-4 pr-12 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm font-bold tracking-wide placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                               onkeyup="buscarInscritoDinamico(this.value)">
+                        <div class="absolute right-4 top-3.5 text-slate-500">
+                            <i class="fa-solid fa-search"></i>
+                        </div>
+                    </div>
+                    
+                    <p id="alerta-no-encontrado" class="text-xs text-red-400 hidden flex items-center gap-2 bg-red-950/20 p-2.5 rounded-lg border border-red-900/30">
+                        <i class="fa-solid fa-circle-exclamation"></i> No se encontró ningún participante registrado con ese dato.
+                    </p>
+                </div>
+
+                <!-- Lista expandible para fácil consulta y clic rápido -->
+                <div class="mt-5 pt-4 border-t border-slate-800">
+                 <!--   <button onclick="toggleListaAyuda()" class="w-full flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider focus:outline-none hover:text-amber-500 transition">-->
+                     <!--   <span><i class="fa-solid fa-list-check mr-1.5 text-amber-500"></i> Buscar en Lista Completa</span> -->
+                        <!--<i id="chevron-ayuda" class="fa-solid fa-chevron-down transition-transform"></i> -->
+                 <!--   </button> -->
+                    
+                    <div id="lista-ayuda-alumnos" class="mt-3 space-y-1.5 max-h-[250px] overflow-y-auto hidden pr-1">
+                        <!-- Rellenado dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA DE ADMINISTRADOR SECURE -->
+            <div id="panel-admin" class="hidden flex flex-col gap-5">
+                
+                <!-- Importar CSV -->
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xs font-extrabold text-amber-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-csv"></i> Actualizar Base de Datos (CSV)
+                        </h3>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mb-3">Si tienes nuevas respuestas de Google Forms, sube el archivo `.csv` aquí para actualizar la base de datos.</p>
+                    
+                    <label class="w-full bg-slate-950 hover:bg-slate-800 text-slate-300 text-xs font-bold py-3 px-4 rounded-xl cursor-pointer transition flex items-center justify-center gap-2 border border-slate-700">
+                        <i class="fa-solid fa-cloud-arrow-up text-amber-500"></i>
+                        <span>Cargar Nuevo CSV</span>
+                        <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="procesarArchivoCSV(this)">
+                    </label>
+
+                    <div class="mt-3 flex justify-between items-center text-[10px] text-slate-500">
+                        <span id="contador-registros">Padrón: 0 inscritos</span>
+                        <button onclick="restaurarOriginales()" class="text-red-400 hover:underline">Reiniciar Base</button>
+                    </div>
+                </div>
+
+                <!-- Personalizar Firmas -->
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+                    <h3 class="text-xs font-extrabold text-slate-300 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-sliders text-amber-500"></i> Parámetros del Certificado
+                    </h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[10px] text-slate-400 font-bold block mb-1">AUTORIDAD FIRMANTE</label>
+                            <input type="text" id="config-firmante" value="Coordinador de Investigación" 
+                                   oninput="actualizarTexto('cert-firmante', this.value)"
+                                   class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 font-bold block mb-1">CARGO / ORGANISMO</label>
+                            <input type="text" id="config-cargo" value="Comité Organizador UTEA" 
+                                   oninput="actualizarTexto('cert-cargo', this.value)"
+                                   class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 font-bold block mb-1">FECHA DE EMISIÓN</label>
+                            <input type="text" id="config-fecha" value="25 de Junio de 2026" 
+                                   oninput="actualizarTexto('cert-fecha', this.value)"
+                                   class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Listado Completo de Alumnos en DB -->
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col h-[280px]">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Padrón Cargado</span>
+                        <span id="padrón-badge" class="bg-slate-950 text-amber-500 px-2 py-0.5 rounded text-[10px] font-mono font-bold">0 items</span>
+                    </div>
+                    <div id="lista-alumnos" class="space-y-1.5 overflow-y-auto flex-grow pr-1">
+                        <!-- Rellenado dinámicamente -->
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- ================= PANEL DEL CERTIFICADO DERECHO (8 Columnas) ================= -->
+        <section class="lg:col-span-8 flex flex-col gap-4 w-full">
+            
+            <!-- Barra superior de Descarga e Impresión -->
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap justify-between items-center gap-4 shadow-xl">
+                <div>
+                    <span class="text-xs font-extrabold text-amber-500 uppercase tracking-wider block">Vista de Emisión</span>
+                    <p class="text-[11px] text-slate-400">Verifica el diseño fidedigno de la constancia antes de descargar o imprimir.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="imprimirCertificado()" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 text-xs shadow-md">
+                        <i class="fa-solid fa-print"></i> Imprimir Constancia
+                    </button>
+                    <button onclick="descargarCertificadoPDF()" 
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 text-xs shadow-md">
+                        <i class="fa-solid fa-file-pdf"></i> Guardar en PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contenedor del Certificado con Auto-Escalado para que sea siempre visible -->
+            <div class="bg-slate-900 border border-slate-800 p-4 sm:p-6 rounded-2xl shadow-2xl flex justify-center items-start overflow-hidden">
+                <div id="certificado-container" class="w-full flex justify-center overflow-visible">
+                    <div id="certificado-wrapper">
+                        
+                        <!-- DOCUMENTO IMPRIMIBLE A4 -->
+                        <div id="certificado-a4" class="text-slate-900 flex flex-col justify-between p-[50px] select-none">
+                            
+                            <!-- Marcos Decorativos -->
+                            <div class="certificado-marco"></div>
+                            <div class="certificado-marco-interno"></div>
+                            <div class="esquina esquina-tl"></div>
+                            <div class="esquina esquina-tr"></div>
+                            <div class="esquina esquina-bl"></div>
+                            <div class="esquina esquina-br"></div>
+
+                            <!-- Encabezado -->
+                            <div class="flex justify-between items-start w-full relative z-10">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 mx-auto bg-white rounded-full flex items-center justify-center shrink-0 border border-amber-500/30 shadow overflow-hidden">
+                                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfdSVWCDX3aWYxNslKsjlF11Y2aMsDlYR_9VUMb8abTjiDazf7BpsJ93g&s=10" alt="Escudo UTEA" class="w-full h-full object-contain p-1">
+                                    </div>
+                                    <div class="text-left">
+                                        <h2 class="text-xs font-extrabold text-blue-900 font-titulo leading-none">FACULTAD DE INGENIERÍA</h2>
+                                        <h4 class="text-[8px] text-amber-600 font-bold uppercase tracking-wider mt-1">Escuela Profesional de Ingeniería Civil</h4>
+                                    </div>
+                                </div>
+
+                                <div class="text-center">
+                                    <h4 class="text-[10px] text-blue-950 font-extrabold tracking-wider mt-0.5">UNIVERSIDAD TECNOLÓGICA DE LOS ANDES</h4>
+                                    <h1 class="text-[10px] text-blue-950 font-extrabold tracking-wider mt-0.5">FILIAL ANDAHUAYLAS</h1>
+                                </div>
+
+                                <div class="text-center">
+                                    <span class="inline-block bg-blue-900/5 border border-blue-900/20 text-blue-900 text-[9px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+                                        I Concurso de Posters
+                                    </span>
+                                </div>
+                            </div>
+                                  
+                            <div class="text-center my-auto px-10 relative z-10">
+                                <!-- Logo centrado horizontalmente con mx-auto -->
+                                <div class="w-40 h-40 mx-auto -mt-6 mb-5 bg-white rounded-full flex items-center justify-center shrink-0 border border-amber-500/30 shadow overflow-hidden">
+                                    <img src="https://i0.wp.com/utea.edu.pe/wp-content/uploads/2022/01/logo-esucdo-utea.png?resize=246%2C282&ssl=1" 
+                                        alt="Escudo UTEA" 
+                                        class="w-full h-full object-contain p-5 transform -translate-y-1">
+                                </div> 
+                                                            
+                                <h1 class="text-3xl font-bold text-blue-950 uppercase tracking-widest font-certificado-titulo mb-1">
+                                    Constancia de Inscripción
+                                </h1>
+                                <div class="w-48 h-0.5 bg-amber-500 mx-auto mb-4"></div>
+
+                                <p class="text-[11px] italic text-slate-600 font-light mb-2">
+                                    El Comité Organizador de la Escuela Profesional de Ingeniería Civil otorga la presente constancia a:
+                                </p>
+
+                                <!-- Estudiante -->
+                                <h2 id="cert-estudiante-nombre" class="text-2.5xl font-bold text-blue-950 font-titulo border-b border-dotted border-blue-300 inline-block px-8 py-0.5 mb-3 text-center">
+                                    GUTIÉRREZ DELGADO ÁNGEL ABRAHAM
+                                </h2>
+
+                                <!-- Redacción -->
+                                <p class="text-[11px] text-slate-700 max-w-2xl mx-auto leading-relaxed mb-4 font-cuerpo">
+                                    Por encontrarse debidamente registrado(a) con código universitario <strong id="cert-estudiante-codigo" class="text-blue-900 font-extrabold">201801378H</strong> 
+                                    y DNI <strong id="cert-estudiante-dni" class="text-blue-900 font-extrabold">74578789</strong> en el 
+                                    <strong class="text-blue-950 font-semibold">I Concurso de Posters Académicos de Investigación en Ingeniería Civil</strong>, 
+                                    con la presentación del proyecto de investigación titulado:
+                                </p>
+
+                                <!-- Proyecto -->
+                                <div class="bg-slate-50 border border-slate-200/80 px-5 py-3 rounded-xl max-w-2xl mx-auto mb-4 min-h-[60px] flex items-center justify-center">
+                                    <p id="cert-proyecto-titulo" class="text-[9.5px] font-semibold italic text-slate-800 text-center leading-snug">
+                                        "Diseño de Mitigación Multicapa para la Estabilización Crítica del Cerro Apu Huayhuaca en Andahuaylas 2026"
+                                    </p>
+                                </div>
+
+                                <!-- Temática -->
+                                <p class="text-[9.5px] text-slate-500 font-semibold">
+                                    Subárea Temática: <span id="cert-subarea" class="font-extrabold text-amber-700 uppercase">Geotecnia y Mitigación de Desastres</span>
+                                </p>
+                            </div>
+
+                            <!-- Pie del Certificado (Firmas, QR) -->
+                            <div class="flex justify-between items-end px-6 relative z-10">
+                                
+                                <!-- QR -->
+                                <div class="flex items-center gap-2.5 text-left">
+                                    <div class="bg-white p-1 border border-slate-200 shadow-sm rounded-lg shrink-0">
+                                        <svg class="w-11 h-11" viewBox="0 0 100 100" fill="currentColor">
+                                            <rect x="0" y="0" width="30" height="30" fill="#1e3a8a"/>
+                                            <rect x="5" y="5" width="20" height="20" fill="white"/>
+                                            <rect x="10" y="10" width="10" height="10" fill="#1e3a8a"/>
+                                            <rect x="70" y="0" width="30" height="30" fill="#1e3a8a"/>
+                                            <rect x="75" y="5" width="20" height="20" fill="white"/>
+                                            <rect x="80" y="10" width="10" height="10" fill="#1e3a8a"/>
+                                            <rect x="0" y="70" width="30" height="30" fill="#1e3a8a"/>
+                                            <rect x="5" y="75" width="20" height="20" fill="white"/>
+                                            <rect x="10" y="80" width="10" height="10" fill="#1e3a8a"/>
+                                            <rect x="40" y="10" width="10" height="10"/>
+                                            <rect x="50" y="20" width="10" height="10"/>
+                                            <rect x="40" y="40" width="20" height="10"/>
+                                            <rect x="10" y="45" width="10" height="15"/>
+                                            <rect x="80" y="40" width="10" height="20"/>
+                                            <rect x="45" y="70" width="15" height="15"/>
+                                            <rect x="70" y="70" width="10" height="10"/>
+                                            <rect x="85" y="85" width="15" height="15"/>
+                                        </svg>
+                                    </div>
+                                    <div class="text-[7.5px] text-slate-500 leading-tight">
+                                        <p class="font-extrabold text-slate-700">CONSTANCIA VERIFICADA</p>
+                                        <p class="font-mono">ID: <span id="cert-codigo-verificacion" class="font-bold text-blue-900">CIV-74578789-2026</span></p>
+                                        <p>Andahuaylas, Apurímac</p>
+                                    </div>
+                                </div>
+
+                                <!-- Fecha -->
+                                <div class="text-center pb-1">
+                                    <p class="text-[8px] text-slate-500 italic">Fecha de registro:</p>
+                                    <p id="cert-fecha" class="text-[10px] font-bold text-slate-800">25 de Junio de 2026</p>
+                                </div>
+
+                                <!-- Firma -->
+                                <div class="text-center w-44 relative shrink-0">
+                                    <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 w-34 h-8 opacity-95 pointer-events-none">
+                                        <svg viewBox="0 0 100 30" fill="none" stroke="#1d4ed8" stroke-width="1.8">
+                                            <path d="M10,20 Q25,5 40,22 T70,10 T90,25" />
+                                            <path d="M30,15 C45,2 50,28 65,15" />
+                                        </svg>
+                                    </div>
+                                    <div class="border-t border-slate-300 pt-1 mt-3">
+                                        <p id="cert-firmante" class="text-[9.5px] font-bold text-slate-800 leading-none">Responsable de Centro de Investigación</p>
+                                        <p id="cert-cargo" class="text-[8px] text-slate-500 uppercase tracking-wider mt-1">Comité Organizador UTEA</p>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                        <!-- FIN DEL DOCUMENTO -->
+
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- PIE DE PÁGINA -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-slate-500 text-xs">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <p>&copy; 2026 Universidad Tecnológica de los Andes - Escuela Profesional de Ingeniería Civil</p>
+            <p class="text-amber-500/80 font-medium"><i class="fa-solid fa-shield-halved"></i> Sistema de Validación de Constancias Digitales</p>
+        </div>
+    </footer>
+
+    <!-- LÓGICA DE CONTROL DEL NEGOCIO -->
+    <script>
+        // Padrón Oficial precargado estáticamente con los 13 participantes oficiales
+        const DEFAULT_DB = {
+            "70129389": {
+                nombre: "Junco Flores Karen Noemi",
+                codigo: "201701117f",
+                dni: "70129389",
+                titulo: "Evaluación de la adición de materiales cementantes suplementarios y superplastificantes en la durabilidad del concreto f’c=210 kg/cm² para mitigar el ataque combinado de sulfatos y ciclos de congelación–descongelación, Andahuaylas, 2026",
+                subarea: "Hidráulica y Recursos Hídricos",
+                fecha: "20 de Junio de 2026",
+                codigoVerificacion: "CIV-70129389-2026"
+            },
+            "75474803": {
+                nombre: "DIAZ ORTIZ JYSON JOEL",
+                codigo: "202101528H",
+                dni: "75474803",
+                titulo: "“Uso de residuos de construcción para mejorar la resistencia, compresibilidad y nivel freático de la subrasante arcillosa Chumbao”",
+                subarea: "Geotecnia e Ingeniería de Suelos",
+                fecha: "22 de Junio de 2026",
+                codigoVerificacion: "CIV-75474803-2026"
+            },
+            "73668451": {
+                nombre: "VALVERDE CHACON PERCY ANTONIO",
+                codigo: "201320220D",
+                dni: "73668451",
+                titulo: "Evaluación de la resistencia del concreto basado en el método de madurez utilizando un sistema embebido de bajo costo Andahuaylas, 2026",
+                subarea: "Estructuras y Construcción",
+                fecha: "22 de Junio de 2026",
+                codigoVerificacion: "CIV-73668451-2026"
+            },
+            "701482555": {
+                nombre: "ccorimanya lizarme diego",
+                codigo: "202214513c",
+                dni: "701482555",
+                titulo: "INFLUENCIA DE LA ADICIÓN DE ALAMBRE RECICLADO EN LAS PROPIEDADES MECÁNICAS DEL CONCRETO PARA PAVIMENTOS RÍGIDOS EN LA CIUDAD DE ANDAHUAYLAS - 2026",
+                subarea: "Transportes y Vías",
+                fecha: "22 de Junio de 2026",
+                codigoVerificacion: "CIV-701482555-2026"
+            },
+            "70148231": {
+                nombre: "VILA LAZO ERIK ALEXANDER",
+                codigo: "202012877i",
+                dni: "70148231",
+                titulo: "\"Evaluación del nivel de servicio y la capacidad vial mediante videogrametría con drones e inteligencia artificial en la avenida Ejército, Andahuaylas – 2026\"",
+                subarea: "Transportes y Vías",
+                fecha: "22 de Junio de 2026",
+                codigoVerificacion: "CIV-70148231-2026"
+            },
+            "72370885": {
+                nombre: "Aparco Navarro Santos Jadsal",
+                codigo: "202012854e",
+                dni: "72370885",
+                titulo: "“Evaluación de la transferencia de carga en juntas de pavimentos de concreto mediante elementos finitos, considerando la fatiga y la vida útil remanente.”",
+                subarea: "Transportes y Vías",
+                fecha: "22 de Junio de 2026",
+                codigoVerificacion: "CIV-72370885-2026"
+            },
+            "44048308": {
+                nombre: "caceres pillaca james",
+                codigo: "202101515b",
+                dni: "44048308",
+                titulo: "Influencia del contenido de fibra de ichu en las propiedades físico-mecánicas de suelos limoso-arcillosos como subrasante en Andahuaylas, 2026",
+                subarea: "Transportes y Vías",
+                fecha: "23 de Junio de 2026",
+                codigoVerificacion: "CIV-44048308-2026"
+            },
+            "70666643": {
+                nombre: "Silvera Hurtado Jesus",
+                codigo: "201801372k",
+                dni: "70666643",
+                titulo: "“Evaluación estructural y funcional del pavimento flexible para determinar el nivel de intervención vial de la carretera Andahuaylas–Huancabamba, 2026”",
+                subarea: "Transportes y Vías",
+                fecha: "23 de Junio de 2026",
+                codigoVerificacion: "CIV-70666643-2026"
+            },
+            "7161466": {
+                nombre: "alhuay huasco martha elisa",
+                codigo: "202212906i",
+                dni: "7161466",
+                titulo: "‘’EFICACIA DE LAS MEMBRANAS CURADORAS EXPUESTAS A RADIACIÓN ULTRAVIOLETA EN EL DESARROLLO DE LA RESISTENCIA A LA COMPRESIÓN DEL CONCRETO PARA SU APLICACIÓN EN ZONAS ALTOANDINAS’’",
+                subarea: "Estructuras y Construcción",
+                fecha: "23 de Junio de 2026",
+                codigoVerificacion: "CIV-7161466-2026"
+            },
+            "74224472": {
+                nombre: "Huachuhuillca Laupa Franklin",
+                codigo: "202212721E",
+                dni: "74224472",
+                titulo: "“Mejoramiento de las propiedades mecánicas del concreto f'c=280 kg/cm² mediante la incorporación de fibra de acero para el uso en zapatas en Andahuaylas, 2026”",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-74224472-2026"
+            },
+            "71876640": {
+                nombre: "Palomino Ramos Lizet",
+                codigo: "202101694f",
+                dni: "71876640",
+                titulo: "“Influencia de la adición de policloruro de vinilo reciclado en la capacidad portante de suelos arcillosos expuestos a diferentes niveles de humedad, Andahuaylas, 2026”.",
+                subarea: "Geotecnia e Ingeniería de Suelos",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-71876640-2026"
+            },
+            "71464202": {
+                nombre: "ANDIA CARDENAS MARIA DEL CARMEN",
+                codigo: "201913487F",
+                dni: "71464202",
+                titulo: "Análisis Comparativo del Comportamiento Mecánico entre Pavimento Rígido Reforzado con Fibras de Acero WIRAND FF1 y del Pavimento Rígido Convencional, Andahuaylas – 2026",
+                subarea: "Transportes y Vías",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-71464202-2026"
+            },
+            "76964253": {
+                nombre: "CAQUI PACHECO BRYAN DIEGO",
+                codigo: "202101624i",
+                dni: "76964253",
+                titulo: "EFECTO DE LA INCORPORACIÓN DE VIRUTA DE ACERO EN LAS PROPIEDADES FÍSICAS Y MECÁNICAS DE LADRILLOS ARTESANALES DE ARCILLA PARA MUROS ESTRUCTURALES EN ANDAHUAYLAS, 2026.",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-76964253-2026"
+            },
+            "70148725": {
+                nombre: "MALLMA SOLANO YONIFER",
+                codigo: "202101001",
+                dni: "70148725",
+                titulo: "Influencia de los residuos de construcción provenientes de demolición y fibras de acero reciclado en la resistencia al concreto fc=210 kg/cm2 para pavimentos rígidos, Andahuaylas 2026.",
+                subarea: "Transportes y Vías",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-70148725-2026"
+            },
+            "48216934": {
+                nombre: "TAPASCO JUAREZ JOEL JONATHAN",
+                codigo: "201914168D",
+                dni: "48216934",
+                titulo: "Influencia de la nanosílice en las propiedades físicas y mecánicas del concreto f´c=210 kg/cm2 para pavimentos rígidos en Andahuaylas, 2026",
+                subarea: "Transportes y Vías",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-48216934-2026"
+            },
+            "72212596": {
+                nombre: "Lizeras Quispe César Melanio",
+                codigo: "201914174G",
+                dni: "72212596",
+                titulo: "EVALUACIÓN DEL PAVIMENTO RÍGIDO CON ADICIÓN DE MICROSÍLICE BAJO CONDICIONES DE EXPOSICIÓN A SULFATOS Y HUMEDAD EN LA AV. LA FLORESTA, ANDAHUAYLAS – 2026.",
+                subarea: "Transportes y Vías",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-72212596-2026"
+            },
+            "75724206": {
+                nombre: "OSORIO MIRANDA EDISON",
+                codigo: "202212658F",
+                dni: "75724206",
+                titulo: "EFECTO DE LA INCORPORACIÓN DE VIRUTA DE ACERO EN LAS PROPIEDADES FÍSICAS Y MECÁNICAS DE LADRILLOS ARTESANALES DE ARCILLA PARA MUROS ESTRUCTURALES EN ANDAHUAYLAS, 2026.",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-75724206-2026"
+            },
+            "43110518": {
+                nombre: "ESPERME ANCCO RONY JOSE",
+                codigo: "201801400i",
+                dni: "43110518",
+                titulo: "\"Efecto del vidrio reciclado como sustitución parcial del agregado fino en las propiedades en estado fresco y endurecido de un concreto f'c = 210 kg/cm2, Andahuaylas 2026\"",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-43110518-2026"
+            },
+            "74763325": {
+                nombre: "Ayquipa Rivas Carlos",
+                codigo: "202212756E",
+                dni: "74763325",
+                titulo: "Influencia del caucho granulado reciclado en la resistencia mecánica del concreto f'c = 210 kg/cm² para elementos estructurales Andahuaylas, 2026",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-74763325-2026"
+            },
+            "75466554": {
+                nombre: "Rojas Alhuay Eberth",
+                codigo: "202212719G",
+                dni: "75466554",
+                titulo: "Adición de polímero reciclado en suelos arcillosos en la capacidad de soporte, Andahuaylas, 2026",
+                subarea: "Geotecnia e Ingeniería de Suelos",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-75466554-2026"
+            },
+            "77238910": {
+                nombre: "Cuzacno Noriega Marcos Eduardo",
+                codigo: "202101523B",
+                dni: "77238910",
+                titulo: "Mejoramiento en las propiedades físico mecánico de la subrasante mediante la incorporación de pavimento asfaltico reciclado, Andahuaylas, 2026",
+                subarea: "Transportes y Vías",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-77238910-2026"
+            },
+            "73307998": {
+                nombre: "Sanchez Calsin Cristian Alessandro",
+                codigo: "201913483d",
+                dni: "73307998",
+                titulo: "\"Influencia agregado grueso reciclado en la resistencia a la compresion y abrasion del concreto para pavimentos rigidos en Andahuaylas, 2025”",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-73307998-2026"
+            },
+            "74236991": {
+                nombre: "Quispe Yauris Richard Alex",
+                codigo: "202101571e",
+                dni: "74236991",
+                titulo: "Influencia del concreto reciclado como sustituto del agregado grueso en las propiedades mecanicas y el coeficiente de Permeabilidad y se pavimentos de concreto andahuaylas",
+                subarea: "Transportes y Vías",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-74236991-2026"
+            },
+            "74141214": {
+                nombre: "Maucaylle Quispe Jhon Edson",
+                codigo: "202012888F",
+                dni: "74141214",
+                titulo: "\"Evaluación de la influencia del polietileno de alta densidad y ceniza de quinua en las propiedades mecánicas de la carpeta asfáltica en el diseño de pavimento flexible\"",
+                subarea: "Transportes y Vías",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-74141214-2026"
+            },
+            "76733782": {
+                nombre: "Sanchez Lago Jhan y Cusinga Orosco Yole Karin",
+                codigo: "202101527i-202102221i",
+                dni: "76733782 / 72073276",
+                titulo: "Influencia de aliviaderos en presas de relaves Sobre La Eficiencia Hidráulica mediante modelación numérico, sistemas neurodifusos adaptativos y similitud hidráulica.",
+                subarea: "Hidráulica y Recursos Hídricos",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-76733782-2026"
+            },
+            "72073276": {
+                nombre: "Sanchez Lago Jhan y Cusinga Orosco Yole Karin",
+                codigo: "202101527i-202102221i",
+                dni: "76733782 / 72073276",
+                titulo: "Influencia de aliviaderos en presas de relaves Sobre La Eficiencia Hidráulica mediante modelación numérico, sistemas neurodifusos adaptativos y similitud hidráulica.",
+                subarea: "Hidráulica y Recursos Hídricos",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-72073276-2026"
+            },
+            "75000890": {
+                nombre: "Balandra Tito José Antauro",
+                codigo: "202101522c",
+                dni: "75000890",
+                titulo: "Influencia del concreto reciclado en pavimentos rígidos",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-75000890-2026"
+            },
+            "60018426": {
+                nombre: "Zea Ccatamayo Mario Anddre",
+                codigo: "202212893h",
+                dni: "60018426",
+                titulo: "INFLUENCIA DE LOS DISIPADORES FRICCIONALES TIPO SLOTTED - BOLTED FRICTION DAMPER ( SBFD ) EN EL DESEMPEÑO SISMICO DE PORTICOS DE CONCRETO ARMADO DE 3 PISOS EN LA CIUDAD DE LIMA",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-60018426-2026"
+            },
+            "72092178": {
+                nombre: "HUARACA CCOPA EMERSON",
+                codigo: "202212790C",
+                dni: "72092178",
+                titulo: "Evaluación estructural y superficial de la condición de un pavimento rígido ubicado en la avenida Nogales del centro poblado Chumbao, Andahuaylas-2026",
+                subarea: "Transportes y Vías",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-72092178-2026"
+            },
+            "74998294": {
+                nombre: "Aquise Diaz Ruth Zamira",
+                codigo: "202101554f",
+                dni: "74998294",
+                titulo: "“Efecto las bajas temperaturas Y del aditivo antideslave en el comportamiento en estado fresco y endurecido del concreto f'c = 280 kg/cm² bajo condiciones de nivel freático elevado en Andahuaylas, 2026.”",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-74998294-2026"
+            },
+            "76530172": {
+                nombre: "LOAYZA CONTRERAS AMELIA",
+                codigo: "202100552A",
+                dni: "76530172",
+                titulo: "Modelamiento hidráulico bidimensional del rio Chumbao para la evaluación de áreas de inundación por caudales máximos, tramo talavera, Andahuaylas 2026",
+                subarea: "Hidráulica y Recursos Hídricos",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-76530172-2026"
+            },
+            "77165746": {
+                nombre: "Acosta Jara Anita",
+                codigo: "202101626g",
+                dni: "77165746",
+                titulo: "Incorporación de concreto reciclado para mejorar las propiedades físicas y mecánicas de suelos arcillosos como estabilizador en cimentaciones superficiales de viviendas de mediana altura en Andahuaylas, 2026.",
+                subarea: "Geotecnia e Ingeniería de Suelos",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-77165746-2026"
+            },
+            "71913931": {
+                nombre: "Serna Salazar claro Jorge",
+                codigo: "202001069f",
+                dni: "71913931",
+                titulo: "“Influencia de la incorporación de fibras de acero reciclado provenientes de neumáticos fuera de uso en las propiedades mecánicas del concreto encauchado para aplicaciones constructivas en la ciudad de Andahuaylas, 2026”.",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-71913931-2026"
+            },
+            "42291331": {
+                nombre: "Esquivel Chañi Maribel",
+                codigo: "202100556h",
+                dni: "42291331",
+                titulo: "\"Efecto de la incorporación de nano-sílice como sustituto parcial del cemento sobre la durabilidad y microestructura del concreto para cimentaciones en condiciones de entorno agresivo en Andahuaylas\"",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-42291331-2026"
+            },
+            "72706144": {
+                nombre: "Espinoza Ludeña Rodrigo Gerardo",
+                codigo: "202100551b",
+                dni: "72706144",
+                titulo: "Análisis de la Vulnerabilidad Sísmica de Edificaciones de Concreto Armado con Irregularidades Estructurales Mediante el Análisis Estático No Lineal Andahuaylas, 2026",
+                subarea: "Estructuras y Construcción",
+                fecha: "24 de Junio de 2026",
+                codigoVerificacion: "CIV-72706144-2026"
+            },
+            "74578789": {
+                nombre: "Gutierrez Delgado Ángel Abraham",
+                codigo: "201801378H",
+                dni: "74578789",
+                titulo: "Diseño de Mitigación Multicapa para la Estabilización Crítica del Cerro Apu Huayhuaca en Andahuaylas 2026",
+                subarea: "Geotecnia y Mitigación de Desastres",
+                fecha: "25 de Junio de 2026",
+                codigoVerificacion: "CIV-74578789-2026"
+            },
+            "75015056": {
+                nombre: "ESTRADA PICHIHUA ANGIE JHUWANA",
+                codigo: "202212764E",
+                dni: "75015056",
+                titulo: "“EVALUACION DEL COSTO Y TIEMPO MEDIANTE LA METODOLOGIA PMBOK EN LA EJECUCION DEL PROYECTO DEL CENTRO DE SALUD OCOBAMBA-ANDAHUAYLAS 2026”",
+                subarea: "Gestión de la Construcción",
+                fecha: "25 de Junio de 2026",
+                codigoVerificacion: "CIV-75015056-2026"
+            },
+            "76738304": {
+                nombre: "Moreno Atao Percy Crhistian",
+                codigo: "202100532e",
+                dni: "76738304",
+                titulo: "Influencia del polímero reforzado con fibra híbrida en el desempeño estructural de la presa Peruanita en clima helado en Andahuaylas, Apurimac 2026",
+                subarea: "Estructuras e Hidráulica",
+                fecha: "25 de Junio de 2026",
+                codigoVerificacion: "CIV-76738304-2026"
+            },
+            "70790448": {
+                nombre: "HUASCO HUARACA JOEL",
+                codigo: "202012858A",
+                dni: "70790448",
+                titulo: "\"Evaluación de la influencia del polietileno de alta densidad y ceniza de quinua en las propiedades mecánicas de la carpeta asfáltica en el diseño de pavimento flexible\"",
+                subarea: "Transportes y Pavimentos",
+                fecha: "25 de Junio de 2026",
+                codigoVerificacion: "CIV-70790448-2026"
+            },
+            "74589361": {
+                nombre: "Carhuarupay Castillo Vladimir Alexander - Cárdenas Pérez Lady Soledad",
+                codigo: "202212886G - 202212806A",
+                dni: "74589361",
+                titulo: "Estudio del estado fresco, resistencia a compresión y durabilidad del concreto sostenible con escoria de litio, Andahuaylas, 2026",
+                subarea: "Tecnología de Materiales",
+                fecha: "25 de Junio de 2026",
+                codigoVerificacion: "CIV-74589361-2026"
+            },
+            "46914327": {
+                nombre: "Chipana Choque Edu Jorginho",
+                codigo: "201700175d",
+                dni: "46914327",
+                titulo: "Influencia de la incorporación de Bacillus subtilis en la autorreparación de fisuras del concreto, Andahuaylas – 2026",
+                subarea: "Tecnología de Materiales y Concreto",
+                fecha: "25 de Junio de 2026",
+                codigoVerificacion: "CIV-46914327-2026"
+            },
+            "72740745": {
+                nombre: "POCCO ROSALES JOAQUIN",
+                codigo: "202101608i",
+                dni: "72740745",
+                titulo: "APLICACIÓN DE LA METODOLOGÍA BIM 3D Y 5D EN LA GESTIÓN DE RIESGOS ESTRUCTURALES EN PROYECTOS DE EDIFICIOS DE MEDIANA ALTURA",
+                subarea: "Estructuras y Construcción",
+                fecha: "25 de Junio de 2026",
+                codigoVerificacion: "CIV-72740745-2026"
+            },
+            "71214175": {
+                nombre: "MALLQUE HUAMAN JHOSEP AMILCAR",
+                codigo: "202001057b",
+                dni: "71214175",
+                titulo: "DESEMPEÑO DEL ÓXIDO DE GRAFENO COMO AGENTE DE MEJORA EN LA DURABILIDAD DE MORTEROS CEMENTICIOS EN COMPARACIÓN AL METACAOLÍN.",
+                subarea: "Tecnología de Materiales",
+                fecha: "25 de Junio de 2026",
+                codigoVerificacion: "CIV-71214175-2026"
+            },
+            "71855671": {
+                nombre: "ZARZO GALDOS",
+                codigo: "202012864c",
+                dni: "71855671",
+                titulo: "Evaluación de la migración de iones cloruro en concreto con agregado grueso reciclado sometido a ciclos de congelamiento-deshielo y radiación UV para su aplicación en infraestructura de zonas altoandinas",
+                subarea: "Estructuras y Construcción",
+                fecha: "25 de Junio de 2026",
+                codigoVerificacion: "CIV-71855671-2026"
+            },
+            "76620876": {
+                nombre: "Curi Alviño Joel Abraham",
+                codigo: "202212692d",
+                dni: "76620876",
+                titulo: "INTEGRACIÓN DEL BIM 3D, 4D Y 5D PARA OPTIMIZAR LA ETAPA DE DISEÑO EN UNA EDIFICACIÓN MULTIFAMILIAR DE ALBAÑILERÍA EN ANDAHUAYLAS, 2026",
+                subarea: "Estructuras y Construcción",
+                fecha: "25 de Junio de 2026",
+                codigoVerificacion: "CIV-76620876-2026"
+            },
+            "71848293": {
+                nombre: "Ortiz Pinto Jandely Valentina",
+                codigo: "202212812c",
+                dni: "71848293",
+                titulo: "MEJORAMIENTO DE LA SUBRASANTE EN SUELOS ARCILLOSOS MEDIANTE ADICION DE POLVO DE VIDRIO RECICLADO EN ANDAHUAYLAS 2026",
+                subarea: "Pavimentos y Geotecnia",
+                fecha: "25 de Junio de 2026",
+                codigoVerificacion: "CIV-71848293-2026"
+            }
+        };
+
+        let inscritosDB = {};
+        let dniSeleccionado = "74578789"; // Selecciona por defecto el primer alumno de la lista real
+
+        window.addEventListener('DOMContentLoaded', () => {
+            inicializarSistema();
+            autoajustarCertificado();
+        });
+
+        window.addEventListener('resize', autoajustarCertificado);
+
+        /**
+         * Inicializa la base de datos y recupera los valores de localStorage
+         */
+        async function inicializarSistema() {
+            // Cargar datos por defecto de la lista adjunta
+            inscritosDB = JSON.parse(JSON.stringify(DEFAULT_DB));
+
+            // Intentar leer de localStorage si existe una base previa subida por el usuario
+            const dbLocal = localStorage.getItem('utea_inscritos_db');
+            if (dbLocal) {
+                inscritosDB = JSON.parse(dbLocal);
+            }
+
+            // Intentar leer el archivo CSV cargado directamente de la raíz de la app
+            await autocargarArchivoCSV();
+
+            cargarAlumnoEnCertificado(dniSeleccionado);
+            renderizarListaAyudaAlumnos();
+            actualizarEstadisticas();
+        }
+
+        /**
+         * Realiza una llamada interna para leer y procesar el CSV subido en el servidor
+         */
+        async function autocargarArchivoCSV() {
+            const nombreArchivo = "inscripción concurso de posters ing civil (respuestas) - Respuestas de formulario 1.csv";
+            try {
+                const response = await fetch(nombreArchivo);
+                if (response.ok) {
+                    const texto = await response.text();
+                    parsearCSV(texto, true); 
+                }
+            } catch (error) {
+                console.warn("Autocarga de archivo CSV no completada (se utilizarán los datos locales precargados):", error);
+            }
+        }
+
+        /**
+         * Autoajusta el tamaño del certificado usando CSS Transform Scale para que quepa en cualquier pantalla
+         */
+        function autoajustarCertificado() {
+            const container = document.getElementById('certificado-container');
+            const wrapper = document.getElementById('certificado-wrapper');
+            const cert = document.getElementById('certificado-a4');
+            if (!container || !wrapper || !cert) return;
+
+            const anchoDisponible = container.offsetWidth;
+            const escala = Math.min(anchoDisponible / 1050, 1);
+
+            cert.style.transform = `scale(${escala})`;
+            cert.style.transformOrigin = 'top center';
+            
+            // Establecer alto del wrapper para que no deje espacios vacíos debajo del certificado escalado
+            wrapper.style.height = `${742 * escala}px`;
+        }
+
+        /**
+         * Alterna la visualización del panel de pestañas
+         */
+        function seleccionarRol(rol) {
+            const tabParticipante = document.getElementById('tab-participante');
+            const tabAdmin = document.getElementById('tab-admin');
+            const panelParticipante = document.getElementById('panel-participante');
+            const panelAdmin = document.getElementById('panel-admin');
+
+            if (rol === 'participante') {
+                tabParticipante.className = "px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 bg-blue-600 text-white shadow";
+                tabAdmin.className = "px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 text-slate-400 hover:text-slate-200";
+                panelParticipante.classList.remove('hidden');
+                panelAdmin.classList.add('hidden');
+            } else {
+                tabAdmin.className = "px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 bg-blue-600 text-white shadow";
+                tabParticipante.className = "px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 text-slate-400 hover:text-slate-200";
+                panelAdmin.classList.remove('hidden');
+                panelParticipante.classList.add('hidden');
+                renderizarListaAlumnosAdmin();
+            }
+            setTimeout(autoajustarCertificado, 50);
+        }
+
+        /**
+         * Expande o colapsa el listado de ayuda de los estudiantes
+         */
+        function toggleListaAyuda() {
+            const lista = document.getElementById('lista-ayuda-alumnos');
+            const chevron = document.getElementById('chevron-ayuda');
+            if (lista.classList.contains('hidden')) {
+                lista.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+            } else {
+                lista.classList.add('hidden');
+                chevron.classList.remove('rotate-180');
+            }
+        }
+
+        /**
+         * Escribe un DNI de forma automática para pruebas rápidas
+         */
+        function forzarDni(dni) {
+            document.getElementById('dni-busqueda').value = dni;
+            buscarInscritoDinamico(dni);
+        }
+
+        /**
+         * Busca un estudiante según el DNI o el nombre ingresado por el participante
+         */
+        function buscarInscritoDinamico(valor) {
+            const valorLimpio = valor.toLowerCase().trim();
+            const alerta = document.getElementById('alerta-no-encontrado');
+
+            if (!valorLimpio) {
+                alerta.classList.add('hidden');
+                return;
+            }
+
+            // Buscar coincidencia parcial o total de DNI, o Nombre
+            let encontradoDni = null;
+            Object.keys(inscritosDB).forEach(dni => {
+                const alumno = inscritosDB[dni];
+                if (dni.includes(valorLimpio) || alumno.nombre.toLowerCase().includes(valorLimpio)) {
+                    if (!encontradoDni) {
+                        encontradoDni = dni;
+                    }
+                }
+            });
+
+            if (encontradoDni) {
+                alerta.classList.add('hidden');
+                dniSeleccionado = encontradoDni;
+                cargarAlumnoEnCertificado(encontradoDni);
+            } else {
+                alerta.classList.remove('hidden');
+            }
+        }
+
+        /**
+         * Carga los datos de un alumno en la plantilla del certificado
+         */
+        function cargarAlumnoEnCertificado(dni) {
+            const alumno = inscritosDB[dni];
+            if (!alumno) return;
+
+            document.getElementById('cert-estudiante-nombre').innerText = alumno.nombre.toUpperCase();
+            document.getElementById('cert-estudiante-codigo').innerText = alumno.codigo.toUpperCase();
+            document.getElementById('cert-estudiante-dni').innerText = alumno.dni;
+            document.getElementById('cert-proyecto-titulo').innerText = `"${alumno.titulo}"`;
+            document.getElementById('cert-subarea').innerText = alumno.subarea;
+            document.getElementById('cert-codigo-verificacion').innerText = alumno.codigoVerificacion;
+
+            const fechaEstablecida = document.getElementById('config-fecha').value;
+            document.getElementById('cert-fecha').innerText = fechaEstablecida || alumno.fecha;
+        }
+
+        /**
+         * Actualiza elementos de texto en vivo
+         */
+        function actualizarTexto(id, valor) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.innerText = valor;
+            }
+        }
+
+        /**
+         * Renderiza la lista completa de ayuda rápida para los alumnos
+         */
+        function renderizarListaAyudaAlumnos() {
+            const contenedor = document.getElementById('lista-ayuda-alumnos');
+            if (!contenedor) return;
+            contenedor.innerHTML = '';
+
+            // Ordenar alfabéticamente para mejor búsqueda visual
+            const llavesOrdenadas = Object.keys(inscritosDB).sort((a, b) => {
+                return inscritosDB[a].nombre.localeCompare(inscritosDB[b].nombre);
+            });
+
+            llavesOrdenadas.forEach(dni => {
+                const alumno = inscritosDB[dni];
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left bg-slate-950/80 hover:bg-slate-800 border border-slate-800 p-2.5 rounded-xl text-[11px] flex justify-between items-center transition";
+                btn.onclick = () => {
+                    forzarDni(dni);
+                    toggleListaAyuda();
+                };
+                btn.innerHTML = `
+                    <span class="truncate pr-2 text-slate-300 font-medium">${alumno.nombre}</span>
+                    <strong class="font-mono text-amber-500 text-xs shrink-0">${alumno.dni}</strong>
+                `;
+                contenedor.appendChild(btn);
+            });
+        }
+
+        /**
+         * Renderiza la lista completa para el Administrador
+         */
+        function renderizarListaAlumnosAdmin() {
+            const contenedor = document.getElementById('lista-alumnos');
+            if (!contenedor) return;
+            contenedor.innerHTML = '';
+
+            Object.keys(inscritosDB).forEach(dni => {
+                const alumno = inscritosDB[dni];
+                const esActivo = dni === dniSeleccionado;
+
+                const item = document.createElement('button');
+                item.className = `w-full text-left p-2.5 rounded-xl border text-[11px] transition flex items-center justify-between gap-2 ${
+                    esActivo 
+                    ? 'bg-amber-500/10 border-amber-500/40 text-white font-semibold' 
+                    : 'bg-slate-950/40 border-slate-800 hover:border-slate-700 text-slate-300'
+                }`;
+
+                item.onclick = () => {
+                    dniSeleccionado = dni;
+                    cargarAlumnoEnCertificado(dni);
+                    renderizarListaAlumnosAdmin();
+                };
+
+                item.innerHTML = `
+                    <div class="overflow-hidden">
+                        <p class="truncate font-bold uppercase">${alumno.nombre}</p>
+                        <p class="text-[9px] text-slate-500 mt-0.5">DNI: ${alumno.dni}</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-700"></i>
+                `;
+                contenedor.appendChild(item);
+            });
+        }
+
+        /**
+         * Actualiza estadísticas en vivo del panel
+         */
+        function actualizarEstadisticas() {
+            const total = Object.keys(inscritosDB).length;
+            document.getElementById('contador-texto').innerText = `Padrón: ${total} Inscritos`;
+            const countReg = document.getElementById('contador-registros');
+            if (countReg) countReg.innerText = `Padrón: ${total} inscritos`;
+            const badge = document.getElementById('padrón-badge');
+            if (badge) badge.innerText = `${total} alumnos`;
+        }
+
+        /**
+         * Procesa el archivo CSV subido por el administrador de forma local
+         */
+        function procesarArchivoCSV(inputElement) {
+            const archivo = inputElement.files[0];
+            if (!archivo) return;
+
+            const lector = new FileReader();
+            lector.onload = function(e) {
+                const contenido = e.target.result;
+                parsearCSV(contenido, false);
+            };
+            lector.readAsText(archivo, 'UTF-8');
+        }
+
+        /**
+         * Analiza e importa la data del CSV detectando nombres de columnas inteligentemente
+         */
+        function parsearCSV(texto, silencioso = false) {
+            const lineas = texto.split(/\r?\n/);
+            if (lineas.length < 2) return;
+
+            const cabecera = dividirCamposCSV(lineas[0]);
+            
+            let idxNombre = -1, idxDni = -1, idxCodigo = -1, idxTitulo = -1, idxSubarea = -1;
+
+            cabecera.forEach((nombre, index) => {
+                const norm = nombre.toLowerCase().trim();
+                if (norm.includes('apellidos') || norm.includes('nombre')) idxNombre = index;
+                else if (norm.includes('dni')) idxDni = index;
+                else if (norm.includes('código de estudiante') || norm.includes('codigo')) idxCodigo = index;
+                else if (norm.includes('título del proyecto') || norm.includes('investigación') || norm.includes('titulo')) idxTitulo = index;
+                else if (norm.includes('seleccione una sub área') || norm.includes('subárea') || norm.includes('sub area')) idxSubarea = index;
+            });
+
+            // Mapeo forzado alternativo por si las cabeceras varían un poco
+            if (idxNombre === -1) idxNombre = 2;
+            if (idxDni === -1) idxDni = 4;
+            if (idxCodigo === -1) idxCodigo = 3;
+            if (idxTitulo === -1) idxTitulo = 9;
+            if (idxSubarea === -1) idxSubarea = 13;
+
+            let nuevosCargados = 0;
+            let primerDniNuevo = null;
+            let dbTemporal = {};
+
+            for (let i = 1; i < lineas.length; i++) {
+                if (!lineas[i].trim()) continue;
+                
+                const columnas = dividirCamposCSV(lineas[i]);
+                if (columnas.length <= Math.max(idxNombre, idxDni)) continue;
+
+                const dni = columnas[idxDni] ? columnas[idxDni].replace(/[^0-9]/g, '').trim() : '';
+                const nombre = columnas[idxNombre] ? columnas[idxNombre].replace(/^"|"$/g, '').trim() : '';
+                const codigo = columnas[idxCodigo] ? columnas[idxCodigo].trim() : '';
+                const titulo = columnas[idxTitulo] ? columnas[idxTitulo].replace(/^"|"$/g, '').trim() : '';
+                const subarea = columnas[idxSubarea] ? columnas[idxSubarea].replace(/^"|"$/g, '').trim() : 'Estructuras y Construcción';
+                
+                let fechaFormateada = "25 de Junio de 2026";
+
+                if (dni && nombre) {
+                    dbTemporal[dni] = {
+                        nombre: nombre,
+                        codigo: codigo || "S/C",
+                        dni: dni,
+                        titulo: titulo || "Proyecto de Investigación Sin Registrar",
+                        subarea: subarea,
+                        fecha: fechaFormateada,
+                        codigoVerificacion: `CIV-${dni}-${new Date().getFullYear()}`
+                    };
+                    if (!primerDniNuevo) primerDniNuevo = dni;
+                    nuevosCargados++;
+                }
+            }
+
+            if (nuevosCargados > 0) {
+                inscritosDB = dbTemporal;
+                dniSeleccionado = primerDniNuevo;
+                
+                // Guardar de forma permanente para recordar las cargas
+                localStorage.setItem('utea_inscritos_db', JSON.stringify(dbTemporal));
+                
+                renderizarListaAyudaAlumnos();
+                renderizarListaAlumnosAdmin();
+                cargarAlumnoEnCertificado(dniSeleccionado);
+                actualizarEstadisticas();
+                
+                if (!silencioso) {
+                    alert(`¡Padrón actualizado! Se han importado correctamente ${nuevosCargados} participantes.`);
+                }
+            } else {
+                if (!silencioso) alert("No se detectaron registros válidos en el archivo CSV.");
+            }
+        }
+
+        function dividirCamposCSV(linea) {
+            const resultado = [];
+            let dentroDeComillas = false;
+            let campoActual = '';
+            
+            for (let i = 0; i < linea.length; i++) {
+                const char = linea[i];
+                if (char === '"') {
+                    dentroDeComillas = !dentroDeComillas;
+                } else if (char === ',' && !dentroDeComillas) {
+                    resultado.push(campoActual);
+                    campoActual = '';
+                } else {
+                    campoActual += char;
+                }
+            }
+            resultado.push(campoActual);
+            return resultado;
+        }
+
+        /**
+         * Restaura la base de datos original (los alumnos de la lista oficial provista)
+         */
+        function restaurarOriginales() {
+            if (confirm("¿Estás seguro de restaurar los registros originales?")) {
+                localStorage.removeItem('utea_inscritos_db');
+                inscritosDB = JSON.parse(JSON.stringify(DEFAULT_DB));
+                dniSeleccionado = "74578789";
+                renderizarListaAyudaAlumnos();
+                renderizarListaAlumnosAdmin();
+                cargarAlumnoEnCertificado(dniSeleccionado);
+                actualizarEstadisticas();
+                alert("Padrón oficial original restaurado con éxito.");
+            }
+        }
+
+        /**
+         * Descarga del documento activo en formato PDF
+         */
+        function descargarCertificadoPDF() {
+            const elemento = document.getElementById('certificado-a4');
+            const dniEstudiante = document.getElementById('cert-estudiante-dni').innerText;
+            const nombreEstudiante = document.getElementById('cert-estudiante-nombre').innerText.replace(/\s+/g, '_');
+
+            const opciones = {
+                margin:       0,
+                filename:     `Constancia_Inscripcion_${nombreEstudiante}_${dniEstudiante}.pdf`,
+                image:        { type: 'jpeg', quality: 1.0 },
+                html2canvas:  { 
+                    scale: 3, 
+                    useCORS: true,
+                    letterRendering: true
+                },
+                jsPDF:        { 
+                    unit: 'px', 
+                    format: [1050, 742], 
+                    orientation: 'landscape' 
+                }
+            };
+
+            html2pdf().set(opciones).from(elemento).save();
+        }
+
+        /**
+         * Envía el certificado directamente al diálogo de impresión del sistema
+         */
+        function imprimirCertificado() {
+            const contenido = document.getElementById('certificado-a4').outerHTML;
+            const ventana = window.open('', '_blank');
+            
+            ventana.document.write(`
+                <html>
+                <head>
+                    <title>Impresión de Certificado</title>
+                    <script src="https://cdn.tailwindcss.com"><\/script>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap');
+                        @page { 
+                            size: landscape; 
+                            margin: 0; 
+                        }
+                        body { 
+                            margin: 0; 
+                            background: white; 
+                            display: flex; 
+                            justify-content: center; 
+                            align-items: center; 
+                            height: 100vh;
+                        }
+                        .font-titulo { font-family: 'Cinzel', serif; }
+                        .font-cuerpo { font-family: 'Montserrat', sans-serif; }
+                        .font-certificado-titulo { font-family: 'Playfair Display', serif; }
+                        
+                        .certificado-hoja {
+                            width: 1050px;
+                            height: 742px;
+                            padding: 50px;
+                            position: relative;
+                            background-color: #ffffff;
+                            box-sizing: border-box;
+                            border: 3.5px solid #1e3a8a;
+                        }
+                        .certificado-marco {
+                            position: absolute;
+                            top: 15px; left: 15px; right: 15px; bottom: 15px;
+                            border: 3.5px solid #1e3a8a;
+                        }
+                        .certificado-marco-interno {
+                            position: absolute;
+                            top: 23px; left: 23px; right: 23px; bottom: 23px;
+                            border: 1px solid #d97706;
+                        }
+                        .esquina {
+                            position: absolute; width: 40px; height: 40px; border-color: #d97706; border-style: solid;
+                        }
+                        .esquina-tl { top: 28px; left: 28px; border-width: 3px 0 0 3px; }
+                        .esquina-tr { top: 28px; right: 28px; border-width: 3px 3px 0 0; }
+                        .esquina-bl { bottom: 28px; left: 28px; border-width: 0 0 3px 3px; }
+                        .esquina-br { bottom: 28px; right: 28px; border-width: 0 3px 3px 0; }
+                    </style>
+                </head>
+                <body onload="setTimeout(function(){ window.print(); window.close(); }, 500)">
+                    <div class="certificado-hoja text-slate-900 flex flex-col justify-between">
+                        ${contenido}
+                    </div>
+                </body>
+                </html>
+            `);
+            ventana.document.close();
+        }
+    </script>
+</body>
+</html>
